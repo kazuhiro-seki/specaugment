@@ -70,8 +70,6 @@ def spec_augment(mel_spectrogram, time_warping_para=80, frequency_masking_para=2
     # Returns
       mel_spectrogram(numpy array): warped and masked mel spectrogram.
     """
-    print('TEST')
-
     v = mel_spectrogram.shape[0]
     tau = mel_spectrogram.shape[1]
 

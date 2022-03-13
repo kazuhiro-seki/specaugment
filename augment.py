@@ -1,4 +1,5 @@
-import os, glob
+import os, sys, re
+import glob
 import argparse
 
 import librosa
@@ -6,8 +7,6 @@ import spec_augment_tensorflow
 import soundfile as sf
 
 parser = argparse.ArgumentParser(description='Spec Augment')
-parser.add_argument('--input', default=None,
-                    help='The audio file.')
 parser.add_argument('--time-warp-para', default=80,
                     help='time warp parameter W')
 parser.add_argument('--frequency-mask-para', default=100,
@@ -23,18 +22,26 @@ time_masking_para = args.frequency_mask_para
 frequency_masking_para = args.time_mask_para
 masking_line_number = args.masking_line_number
 
+output_dir = 'augment'
+
+if not os.path.exists(output_dir):
+    os.mkdir(output_dir)
+
 if __name__ == "__main__":
 
-    files = [args.input]
-    if os.path.isdir(args.input):
-        files = glob.glob(args.input + "/*.flac")    
+    for audio_path in sys.stdin:
 
-    for audio_path in files:
+        audio_path = audio_path.rstrip()
 
+        if not audio_path.endswith('.flac'):
+            continue
+        if not os.path.exists(audio_path):
+            continue
+        
         print(audio_path, flush=True)
 
-        save_path = audio_path.replace('.flac', '_aug.flac')
-        #save_path = audio_path.replace('.flac', '_aug.wav')
+        save_path = os.path.basename(audio_path)
+        save_path = os.path.join(output_dir, save_path)
 
         # Step 0 : load audio file, extract mel spectrogram
 
