@@ -13,14 +13,16 @@ import multiprocessing as multi
 parser = argparse.ArgumentParser(description='SpecAugment')
 parser.add_argument('--output', default='augment',
                     help='output dir')
-parser.add_argument('--time-warp-para', default=80,
+parser.add_argument('--time-warp-para', default=10,
                     help='time warp parameter W')
-parser.add_argument('--frequency-mask-para', default=100,
+parser.add_argument('--frequency-mask-para', default=10,
                     help='frequency mask parameter F')
-parser.add_argument('--time-mask-para', default=27,
+parser.add_argument('--time-mask-para', default=10,
                     help='time mask parameter T')
 parser.add_argument('--masking-line-number', default=1,
                     help='masking line number')
+parser.add_argument('--cpu-count', default=10,
+                    help='cpu count (set -1 for all available cpu)')
 parser.add_argument('--force', default=False, 
                     action='store_true',
                     help='overwrite converted files even if existed')
@@ -50,13 +52,9 @@ def convert(audio_path):
     audio, sampling_rate = librosa.load(audio_path)
     mel_spectrogram = librosa.feature.melspectrogram(y=audio, sr=sampling_rate, n_mels=256, hop_length=128, fmax=8000)
 
-    # reshape spectrogram shape to [batch_size, time, frequency, 1]
-    #shape = mel_spectrogram.shape
-    #mel_spectrogram = np.reshape(mel_spectrogram, (-1, shape[0], shape[1], 1))
-
-    warped_masked_spectrogram = spec_augment_tensorflow.spec_augment(mel_spectrogram=mel_spectrogram, time_warping_para=80, frequency_masking_para=27, time_masking_para=100, frequency_mask_num=1, time_mask_num=1)
+    warped_masked_spectrogram = spec_augment_tensorflow.spec_augment(mel_spectrogram=mel_spectrogram, time_warping_para=time_warping_para, frequency_masking_para=frequency_masking_para, time_masking_para=time_masking_para, frequency_mask_num=masking_line_number, time_mask_num=masking_line_number)
+    sampling_rate = 16000 
     data=librosa.feature.inverse.mel_to_audio(warped_masked_spectrogram, sr=sampling_rate, hop_length=128)
-    #sampling_rate = 16000 
     sf.write(save_path, data, sampling_rate, subtype='PCM_16')
 
     # delete lock file
@@ -87,7 +85,12 @@ if __name__ == "__main__":
 
     #print(paths)
 
+    # number of cpu cores
+    if args.cpu_count == -1:
+        p = Pool(multi.cpu_count())
+    else:
+        p = Pool(args.cpu_count)
+
     # convert in parallel
-    p = Pool(multi.cpu_count())
     p.map(convert, paths)
     p.close()
